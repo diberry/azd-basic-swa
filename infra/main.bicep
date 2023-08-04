@@ -56,7 +56,7 @@ module web './app/web.bicep' = {
   params: {
     name: !empty(webServiceName) ? webServiceName : '${abbrs.webStaticSites}web-${resourceToken}'
     location: location
-    tags: tags,
+    tags: tags
     applicationInsightsName: monitoring.outputs.applicationInsightsName
   }
 }
