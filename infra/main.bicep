@@ -17,6 +17,11 @@ param location string
 param resourceGroupName string = ''
 param webServiceName string = ''
 
+// App Insights
+param applicationInsightsDashboardName string = ''
+param applicationInsightsName string = ''
+param logAnalyticsName string = ''
+
 // @description('Id of the user or app to assign application roles')
 // param principalId string = ''
 
@@ -31,6 +36,19 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
+// Monitor application with Azure Monitor
+module monitoring './core/monitor/monitoring.bicep' = {
+  name: 'monitoring'
+  scope: rg
+  params: {
+    location: location
+    tags: tags
+    logAnalyticsName: !empty(logAnalyticsName) ? logAnalyticsName : '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
+    applicationInsightsName: !empty(applicationInsightsName) ? applicationInsightsName : '${abbrs.insightsComponents}${resourceToken}'
+    applicationInsightsDashboardName: !empty(applicationInsightsDashboardName) ? applicationInsightsDashboardName : '${abbrs.portalDashboards}${resourceToken}'
+  }
+}
+
 // The application frontend
 module web './app/web.bicep' = {
   name: 'web'
@@ -38,11 +56,18 @@ module web './app/web.bicep' = {
   params: {
     name: !empty(webServiceName) ? webServiceName : '${abbrs.webStaticSites}web-${resourceToken}'
     location: location
-    tags: tags
+    tags: tags,
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
   }
 }
+
+
 
 // App outputs
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
 output REACT_APP_WEB_BASE_URL string = web.outputs.SERVICE_WEB_URI
+
+// App Insights outputs
+output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
+output APPLICATIONINSIGHTS_NAME string = monitoring.outputs.applicationInsightsName
